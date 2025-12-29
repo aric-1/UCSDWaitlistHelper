@@ -90,7 +90,7 @@ def compute_seat_openings(
 
 if __name__ == "__main__":
     # ---- CONFIG ----
-    CSV_PATH = "UCSDWaitlistHelper\BILD 5_A.csv"
+    CSV_PATH = "BILD 5_A.csv"
 
     QUERY_TIME = parse_time("2025-01-02T12:00:00")
     INSTRUCTION_BEGIN = parse_time("2025-01-06T00:00:00")
