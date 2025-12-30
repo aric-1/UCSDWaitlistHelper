@@ -22,10 +22,10 @@ def compute_seat_openings(
 ):
     """
     Returns seat opening stats from query_time until
-    7 days after instruction begins.
+    21 days after instruction begins.
     """
 
-    end_time = instruction_begin + timedelta(days=7)
+    end_time = instruction_begin + timedelta(days=21)
 
     # Filter time window
     mask = (df["time"] >= query_time) & (df["time"] <= end_time)
@@ -94,6 +94,11 @@ if __name__ == "__main__":
 
     QUERY_TIME = parse_time("2025-01-02T12:00:00")
     INSTRUCTION_BEGIN = parse_time("2025-01-06T00:00:00")
+
+    # Print seconds passed since start of second pass
+    SECOND_PASS_START = parse_time("2024-11-09T00:00:00")
+    SECOND_PASS_START_SECONDS = (QUERY_TIME - SECOND_PASS_START).total_seconds()
+    print(f"Seconds since second pass start: {SECOND_PASS_START_SECONDS}")
 
     # ---- RUN ----
     df = load_section_csv(CSV_PATH)

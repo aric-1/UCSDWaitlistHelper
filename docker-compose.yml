@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16
+    container_name: seatdrops-db
+    restart: always
+    environment:
+      POSTGRES_DB: seatdrops
+      POSTGRES_USER: seatdrops
+      POSTGRES_PASSWORD: seatdrops
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    container_name: seatdrops-api
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://seatdrops:seatdrops@db:5432/seatdrops
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:

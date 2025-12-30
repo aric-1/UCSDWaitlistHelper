@@ -1,0 +1,6 @@
+# Ignore all CSV files (anywhere in the repo)
+*.csv
+
+# Ignore the 2025Winter-main folder and everything underneath it
+/2025Winter-main/
+__pycache__/

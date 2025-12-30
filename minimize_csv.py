@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import timedelta
 import sys
+from pathlib import Path
 """
 Utility to minimize section CSV files by extracting seat opening events,
 and computing drops_after values; removes extraneous data.
@@ -12,42 +13,50 @@ def load_csv(csv_path):
     df["time"] = pd.to_datetime(df["time"], utc=True)
     return df
 
-def trim_to_relevant_window(df, instruction_begin, min_waitlist=1):
+def trim_to_relevant_window(df, instruction_begin, waitlist_close, min_waitlist=1):
     """
-    Keep only rows after waitlist has started and before instruction_begin + 7 days
+    Keep only rows after waitlist has started and before `waitlist_close`.
+
+    `waitlist_close` should be a timestamp (timezone-aware) representing when the waitlist
+    is considered closed for the section (inclusive).
     """
     # Detect first time waitlist exists
     waitlist_rows = df[df["waitlisted"] >= min_waitlist]
     if waitlist_rows.empty:
         return pd.DataFrame()
     start_time = waitlist_rows.iloc[0]["time"]
-    end_time = instruction_begin + timedelta(days=7)
+    end_time = waitlist_close
     return df[(df["time"] >= start_time) & (df["time"] <= end_time)].copy()
 
-def detect_opening_windows(df, min_consecutive=1):
+def detect_opening_windows(df):
     """
-    Identify periods where seats are available for at least min_consecutive samples
+    Record every instance when `available` increases between consecutive samples.
+
+    Returns a list of tuples (time, seats_opened) where `time` is the timestamp of the
+    row where the increase was observed and `seats_opened` == current_available - previous_available.
     """
     windows = []
-    consecutive = 0
-    start_time = None
-    max_open = 0
+    prev_avail = None
 
-    for _, row in df.iterrows():
-        if row["available"] > 0:
-            consecutive += 1
-            max_open = max(max_open, row["available"])
-            if consecutive == 1:
-                start_time = row["time"]
-        else:
-            if consecutive >= min_consecutive:
-                windows.append((start_time, max_open))
-            consecutive = 0
-            start_time = None
-            max_open = 0
+    # iterate in time order to detect increases
+    for _, row in df.sort_values("time").iterrows():
+        if "available" not in row:
+            continue
+        try:
+            avail = int(row["available"])
+        except Exception:
+            # skip non-integer/missing values
+            prev_avail = None
+            continue
 
-    if consecutive >= min_consecutive:
-        windows.append((start_time, max_open))
+        if prev_avail is None:
+            prev_avail = avail
+            continue
+
+        if avail > prev_avail:
+            windows.append((row["time"], avail - prev_avail))
+
+        prev_avail = avail
 
     return windows
 
@@ -64,7 +73,7 @@ def build_drops_after_series(opening_windows):
 
     return drops_after_list
 
-def minimize_csv(input_csv, instruction_begin_str, output_csv, second_pass_start_str):
+def minimize_csv(input_csv, instruction_begin_str, output_csv, second_pass_start_str, waitlist_close_str):
     """
     Minimize CSV and record time relative to `second_pass_start_str`.
 
@@ -72,13 +81,15 @@ def minimize_csv(input_csv, instruction_begin_str, output_csv, second_pass_start
       - `drops_after` (int)
       - `time_after_second_pass_seconds` (float)
 
-    `second_pass_start_str` is required and should be an ISO-8601 UTC datetime string.
+    Both `second_pass_start_str` and `waitlist_close_str` are required and should be
+    ISO-8601 UTC datetime strings.
     """
     instruction_begin = pd.to_datetime(instruction_begin_str, utc=True)
     second_pass_start = pd.to_datetime(second_pass_start_str, utc=True)
+    waitlist_close = pd.to_datetime(waitlist_close_str, utc=True)
 
     df = load_csv(input_csv)
-    df = trim_to_relevant_window(df, instruction_begin)
+    df = trim_to_relevant_window(df, instruction_begin, waitlist_close)
     if df.empty:
         print("No relevant waitlist data found.")
         return
@@ -97,19 +108,38 @@ def minimize_csv(input_csv, instruction_begin_str, output_csv, second_pass_start
         "time_after_second_pass_seconds": time_offsets,
     })
 
-    out_df.to_csv(output_csv, index=False)
-    print(f"Minimized CSV saved to {output_csv}")
+    # determine ending capacity at or before waitlist_close
+    ending_capacity = None
+    if "total" in df.columns:
+        # rows up to and including waitlist_close
+        rows_up_to_close = df[df["time"] <= waitlist_close]
+        if not rows_up_to_close.empty:
+            try:
+                ending_capacity = int(rows_up_to_close.iloc[-1]["total"])
+            except Exception:
+                ending_capacity = None
+
+    # append capacity to output filename
+    out_path = Path(output_csv)
+    cap_suffix = f"_cap{ending_capacity}" if ending_capacity is not None else "_capNA"
+    final_out_path = out_path.with_name(out_path.stem + cap_suffix + out_path.suffix)
+
+    out_df.to_csv(final_out_path, index=False)
+    print(f"Minimized CSV saved to {final_out_path} (ending_capacity={ending_capacity})")
+
+    return str(final_out_path), ending_capacity
 
 # command line testing interface
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
-        print("Usage: python minimize_csv.py <input_csv> <instruction_begin> <output_csv> <second_pass_start>")
-        print("Example: py minimize_csv.py 'BILD 5_A.csv' '2025-01-06T00:00:00Z' 'BILD 5_A_minimized.csv' '2024-11-09T00:00:00Z'")
+    if len(sys.argv) != 6:
+        print("Usage: python minimize_csv.py <input_csv> <instruction_begin> <output_csv> <second_pass_start> <waitlist_close>")
+        print("Example: py minimize_csv.py 'BILD 5_A.csv' '2025-01-06T00:00:00Z' 'BILD 5_A_minimized.csv' '2024-11-19T00:00:00Z' '2025-01-16T00:00:00Z'")
         sys.exit(1)
 
     input_csv = sys.argv[1]
     instruction_begin_str = sys.argv[2]
     output_csv = sys.argv[3]
     second_pass_start_str = sys.argv[4]
+    waitlist_close_str = sys.argv[5]
 
-    minimize_csv(input_csv, instruction_begin_str, output_csv, second_pass_start_str)
+    minimize_csv(input_csv, instruction_begin_str, output_csv, second_pass_start_str, waitlist_close_str)
