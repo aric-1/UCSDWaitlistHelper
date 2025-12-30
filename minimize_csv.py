@@ -34,18 +34,31 @@ def detect_opening_windows(df):
 
     Returns a list of tuples (time, seats_opened) where `time` is the timestamp of the
     row where the increase was observed and `seats_opened` == current_available - previous_available.
-    """
-    windows = []
-    prev_avail = None
 
-    # iterate in time order to detect increases
-    for _, row in df.sort_values("time").iterrows():
+    Also includes an initial entry (first_time, 0) to indicate the start of the window.
+    """
+    # sort by time and handle empty data
+    df_sorted = df.sort_values("time")
+    if df_sorted.empty:
+        return []
+
+    windows = []
+
+    # initialize with the first row
+    first_row = df_sorted.iloc[0]
+    windows.append((first_row["time"], 0))
+    try:
+        prev_avail = int(first_row["available"])
+    except Exception:
+        prev_avail = None
+
+    # iterate remaining rows
+    for _, row in df_sorted.iloc[1:].iterrows():
         if "available" not in row:
             continue
         try:
             avail = int(row["available"])
         except Exception:
-            # skip non-integer/missing values
             prev_avail = None
             continue
 

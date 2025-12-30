@@ -2,13 +2,14 @@ import os
 import re
 import pandas as pd
 import psycopg2
+import argparse
 
 # ---------- CONFIG ----------
 CSV_ROOT = "./csvs"
 DB_PARAMS = {
     "dbname": "seatdrops",
     "user": "postgres",
-    "password": "jerryaric",
+    "password": None,  # provided via CLI
     "host": "localhost",
     "port": 5432
 }
@@ -95,4 +96,13 @@ def process_all_csvs():
         conn.close()
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Load minimized CSVs into the DB")
+    parser.add_argument("--db-password", required=True, help="Postgres user's password")
+    parser.add_argument("--csv-root", default=CSV_ROOT, help="Root folder containing CSVs")
+
+    args = parser.parse_args()
+
+    DB_PARAMS["password"] = args.db_password
+    CSV_ROOT = args.csv_root
+
     process_all_csvs()
