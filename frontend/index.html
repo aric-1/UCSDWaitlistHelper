@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>UCSD Waitlist Estimator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <h1>UCSD Waitlist Estimator</h1>
+
+    <form id="query-form">
+      <label>
+        Course Code
+        <input type="text" id="course" placeholder="CSE 12" required />
+      </label>
+
+      <label>
+        Waitlist Position
+        <input type="number" id="waitlist" min="1" required />
+      </label>
+
+      <label>
+        Section Capacity
+        <input type="number" id="capacity" min="1" placeholder="40" required />
+      </label>
+
+      <label>
+        Second Pass Open Date
+        <input
+          type="date"
+          id="second-pass"
+          required
+        />
+      </label>
+
+      <button type="submit">Check</button>
+    </form>
+
+    <pre id="output"></pre>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
