@@ -4,6 +4,53 @@ const output = document.getElementById("output");
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL;
 
+// About panel toggle handlers
+const aboutBtn = document.getElementById('about-btn');
+const aboutPanel = document.getElementById('about-panel');
+const aboutClose = document.getElementById('about-close');
+
+if (aboutBtn && aboutPanel) {
+  aboutBtn.addEventListener('click', () => {
+    const isHidden = aboutPanel.classList.contains('hidden');
+    if (isHidden) {
+      aboutPanel.classList.remove('hidden');
+      aboutBtn.setAttribute('aria-expanded', 'true');
+    } else {
+      aboutPanel.classList.add('hidden');
+      aboutBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+if (aboutClose && aboutPanel) {
+  aboutClose.addEventListener('click', () => {
+    aboutPanel.classList.add('hidden');
+    if (aboutBtn) aboutBtn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+// Second pass info tooltip handlers
+const infoBtn = document.getElementById('second-pass-info');
+const tooltip = document.getElementById('second-pass-tooltip');
+if (infoBtn && tooltip) {
+  const showTooltip = () => { tooltip.classList.remove('hidden'); infoBtn.setAttribute('aria-expanded', 'true'); };
+  const hideTooltip = () => { tooltip.classList.add('hidden'); infoBtn.setAttribute('aria-expanded', 'false'); };
+
+  infoBtn.addEventListener('mouseenter', showTooltip);
+  infoBtn.addEventListener('mouseleave', hideTooltip);
+  infoBtn.addEventListener('focus', showTooltip);
+  infoBtn.addEventListener('blur', hideTooltip);
+
+  infoBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    tooltip.classList.toggle('hidden');
+    infoBtn.setAttribute('aria-expanded', String(!tooltip.classList.contains('hidden')));
+  });
+
+  document.addEventListener('click', (ev) => { if (!tooltip.contains(ev.target) && ev.target !== infoBtn) hideTooltip(); });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') hideTooltip(); });
+}
+
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -72,14 +119,24 @@ form.addEventListener("submit", async (e) => {
     const summaryDiv = document.createElement('div');
     const p = document.createElement('p');
     p.appendChild(document.createTextNode(`We found ${normalized.length} sections in our database for your class. \n`));
-    p.appendChild(document.createTextNode(`The waitlist moved an average ${avg_movement_rounded} positions from this time, meaning you `));
+    p.appendChild(document.createTextNode(`The waitlist moved an average ${avg_movement_rounded} positions from this time until automatic waitlists close, meaning you `));
 
     const strong = document.createElement('strong');
     strong.textContent = got_in_text;
     p.appendChild(strong);
 
     p.appendChild(document.createTextNode(` by an average margin of ${margin_abs} spots. \n`));
-    p.appendChild(document.createTextNode(`In ${successes} out of ${normalized.length} past sections, you would have made it.`));
+    p.appendChild(document.createTextNode(`In ${successes} out of ${normalized.length} past sections, you would have made it.\n`));
+
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createElement('br'));
+
+    p.appendChild(document.createTextNode(`Keep in mind certain classes, like some in the CSE department, give priority in the waitlist to 
+        students in their department. Some classes may also expand their capacity throughout the enrollment period, which this tool sees as additional
+        openings; these expansions may not always occur at the same time or be consistent quarter-to-quarter. Please check if your class falls into these categories.`));
+
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createElement('br'));
 
     summaryDiv.appendChild(p);
 
@@ -91,7 +148,7 @@ form.addEventListener("submit", async (e) => {
     const ul = document.createElement('ul');
     normalized.forEach(s => {
       const count = Number.isFinite(s.drops_after) ? Math.round(s.drops_after) : (Number.isFinite(s.scaled_drops) ? Math.round(s.scaled_drops) : 0);
-      const capText = Number.isFinite(s.capacity) ? ` (${s.capacity})` : '';
+      const capText = Number.isFinite(s.capacity) ? ` (capacity ${s.capacity})` : '';
       const text = `${s.quarter}, Section ${s.section}${capText}: ${count} ${count === 1 ? 'opening' : 'openings'}`;
       const li = document.createElement('li');
       li.textContent = text;

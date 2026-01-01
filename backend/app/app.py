@@ -45,7 +45,7 @@ def query_course():
         LEFT JOIN seat_drop_events e
             ON s.section_id = e.section_id AND e.time_after_second_pass_seconds >= %s
         WHERE
-            s.course_code = %s
+            lower(s.course_code) = lower(%s)
         ORDER BY
             s.section_id,
             e.time_after_second_pass_seconds ASC;
