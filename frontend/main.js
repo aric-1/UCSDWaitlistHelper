@@ -125,7 +125,7 @@ form.addEventListener("submit", async (e) => {
     strong.textContent = got_in_text;
     p.appendChild(strong);
 
-    p.appendChild(document.createTextNode(` by an average margin of ${margin_abs} spots. \n`));
+    p.appendChild(document.createTextNode(` by an average margin of ${margin_abs} spots.  \n`));
     p.appendChild(document.createTextNode(`In ${successes} out of ${normalized.length} past sections, you would have made it.\n`));
 
     p.appendChild(document.createElement('br'));

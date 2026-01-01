@@ -3,16 +3,19 @@ import psycopg2
 import time
 from datetime import datetime, timezone
 from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 DB_PARAMS = {
-    "dbname": "seatdrops",
-    "user": "postgres",
+    "dbname": None,
+    "user": None,
     "password": None,  # provided via CLI
-    "host": "localhost",
-    "port": 5432
+    "host": None,
+    "port": None
 }
 
 def get_db():
@@ -73,13 +76,19 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Run Flask app with DB credentials")
-    parser.add_argument("--db-password", required=True, help="Postgres user's password")
     parser.add_argument("--host", default="127.0.0.1", help="Flask host")
     parser.add_argument("--port", type=int, default=5000, help="Flask port")
     parser.add_argument("--debug", action="store_true", help="Enable Flask debug mode")
 
     args = parser.parse_args()
 
-    DB_PARAMS["password"] = args.db_password
+    DB_PARAMS["password"] = os.getenv("DB_PASSWORD")
+    DB_PARAMS["host"] = os.getenv("DB_HOST")
+    DB_PARAMS["port"] = os.getenv("DB_PORT")
+    DB_PARAMS["dbname"] = os.getenv("DB_NAME")
+    DB_PARAMS["user"] = os.getenv("DB_USER")
 
-    app.run(debug=args.debug, host=args.host, port=args.port)
+    if not DB_PARAMS["password"]:
+        parser.error("Database password must be provided via DB_PASSWORD environment variable")
+
+    app.run(debug=args.debug, host="0.0.0.0", port=args.port)
