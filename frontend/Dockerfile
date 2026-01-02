@@ -10,12 +10,12 @@ RUN npm install
 # Copy source
 COPY . .
 
-# Build static files
-RUN npm run build
-
 # Set backend URL at build time
 ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+
+# Build static files
+RUN npm run build
 
 # ---------- Serve stage ----------
 FROM nginx:alpine
