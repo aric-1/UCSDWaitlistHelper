@@ -3,6 +3,7 @@ const output = document.getElementById("output");
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL;
+console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
 
 // About panel toggle handlers
 const aboutBtn = document.getElementById('about-btn');

@@ -17,7 +17,6 @@ RUN npm run build
 ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
-
 # ---------- Serve stage ----------
 FROM nginx:alpine
 
